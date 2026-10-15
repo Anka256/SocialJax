@@ -18,9 +18,12 @@ agents i knows, the faster each of them fades (a soft capacity, C). Memory follo
 M <- max((1 - delta_M) * M, K). A bond whose memory drops below
 forget_threshold is forgotten: K and M reset to 0.
 
-Agent j's reward is sum_i w_ij * (K_new[i, j] - K[i, j]) with
-w_ij = (1 + s_i) / (1 + s_j), so being recognised by a well-known agent pays
-more, and losing recognition costs. An agent's visibility range grows with its
+With w_ij = (1 + s_i) / (1 + s_j), being recognised by a well-known agent pays
+more. Agent j's reward is either
+  reward_mode="change": sum_i w_ij * (K_new[i, j] - K[i, j])   (gaining recognition
+                        pays, losing it costs), or
+  reward_mode="level":  level_reward_rate * sum_i w_ij * K_new[i, j]   (being
+                        recognised pays every step, like social capital). An agent's visibility range grows with its
 status: R_j = min(R0 + c * ln(1 + s_j), R_max).
 
 See the design document for the reasoning behind each rule.
@@ -119,6 +122,9 @@ class Recognition(MultiAgentEnv):
         # unequal start: agents 0..famous_agents-1 start known by everyone
         famous_agents: int = 0,
         famous_init_recognition: float = 0.5,
+        # "change": reward the change in recognition; "level": reward being recognised, every step
+        reward_mode: str = "change",
+        level_reward_rate: float = 0.01,
         shared_rewards: bool = False,
         isolation_threshold: float = 0.5,
     ):
@@ -149,6 +155,9 @@ class Recognition(MultiAgentEnv):
         self.forget_penalty = forget_penalty
         self.famous_agents = famous_agents
         self.famous_init_recognition = famous_init_recognition
+        assert reward_mode in ("change", "level"), reward_mode
+        self.reward_mode = reward_mode
+        self.level_reward_rate = level_reward_rate
         self.shared_rewards = shared_rewards
         self.isolation_threshold = isolation_threshold
 
@@ -208,9 +217,12 @@ class Recognition(MultiAgentEnv):
         seen, dist = self._sight(agent_locs, visibility)
         K, M, slept, forgot = self._update_recognition(state.K, state.M, seen, dist, visibility)
 
-        # Reward to the recognised agent j: sum_i w_ij * dK[i, j], weights from pre-step status.
+        # Reward to the recognised agent j, weighted by w_ij from the pre-step status.
         w = (1.0 + s_old[:, None]) / (1.0 + s_old[None, :])
-        individual = (w * (K - state.K)).sum(axis=0)
+        if self.reward_mode == "change":
+            individual = (w * (K - state.K)).sum(axis=0)
+        else:
+            individual = self.level_reward_rate * (w * K).sum(axis=0)
         individual -= self.sleep_penalty * slept.sum(axis=0) + self.forget_penalty * forgot.sum(axis=0)
         rewards = (
             jnp.full((self.num_agents,), individual.sum()) if self.shared_rewards else individual

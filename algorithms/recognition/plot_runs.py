@@ -1,4 +1,5 @@
-"""Compare Recognition runs: inequality within an episode, status by rank, inequality over training.
+"""Compare Recognition runs: inequality within an episode, status by rank, inequality over training,
+and (for runs with an unequal start) famous-born agents vs the others.
 
     python algorithms/recognition/plot_runs.py \
         Individual=outputs/recognition/sep3_individual \
@@ -78,9 +79,14 @@ def main():
     if len(args.runs) > len(SERIES):
         raise SystemExit(f"at most {len(SERIES)} runs per figure; split the comparison into several figures")
 
-    fig, axes = plt.subplots(1, 3, figsize=(16, 4.6), facecolor=SURFACE)
-    for (label, run_dir), colour in zip((r.split("=", 1) for r in args.runs), SERIES):
-        curves, metrics = load_run(run_dir)
+    runs = [(label, *load_run(run_dir)) for label, run_dir in (r.split("=", 1) for r in args.runs)]
+    unequal = any("famous_status" in curves[0] for _, curves, _ in runs)
+    if unequal:
+        fig, grid = plt.subplots(2, 2, figsize=(13, 9), facecolor=SURFACE)
+        axes = grid.ravel()
+    else:
+        fig, axes = plt.subplots(1, 3, figsize=(16, 4.6), facecolor=SURFACE)
+    for (label, curves, metrics), colour in zip(runs, SERIES):
         n_seeds = len(curves)
         name = f"{label} ({n_seeds} seed{'s' if n_seeds > 1 else ''})"
 
@@ -96,10 +102,18 @@ def main():
         length = min(len(s[1]) for s in smoothed)
         band(axes[2], smoothed[0][0][:length] / 1e6, [s[1][:length] for s in smoothed], colour, name)
 
+        if unequal and "famous_status" in curves[0]:
+            band(axes[3], curves[0]["step"], [c["famous_status"] for c in curves], colour, f"{label}: famous-born")
+            others = np.stack([c["others_status"] for c in curves])
+            axes[3].plot(curves[0]["step"], others.mean(0), color=colour, linewidth=2, linestyle="--",
+                         label=f"{label}: others")
+
     style(axes[0], "Status inequality within an episode", "step of the episode", "status Gini")
     style(axes[1], "Status by rank at episode end", "rank (1 = best known)", "status (sum of recognition)")
     style(axes[2], "Status inequality over training", "training steps (millions)", "status Gini at episode end")
     axes[1].set_xticks(np.arange(1, 11))
+    if unequal:
+        style(axes[3], "Famous-born agents vs the others", "step of the episode", "mean status")
     for ax in axes:
         ax.margins(x=0.02)
         ax.legend(frameon=False, fontsize=9, labelcolor=INK, loc="best")

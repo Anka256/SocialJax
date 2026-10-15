@@ -246,8 +246,9 @@ def make_train(config):
 
 
 def eval_curves(env, policy, params, key, num_episodes):
-    """Play full episodes with the trained policy; per step, the status Gini, isolated agents
-    and the status of the agents ranked 1..N (best known first), averaged over episodes."""
+    """Play full episodes with the trained policy; per step, the status Gini, isolated agents,
+    the status of the agents ranked 1..N (best known first) and, with an unequal start, the
+    mean status of the famous-born agents and of the others; averaged over episodes."""
     keys = jax.random.split(key, num_episodes + 1)
     obs, state = jax.vmap(env.reset)(keys[1:])
 
@@ -266,6 +267,9 @@ def eval_curves(env, policy, params, key, num_episodes):
             "isolated_mean": info["num_isolated"][:, 0].mean(),
             "status_by_rank": ranked.mean(0),
         }
+        if env.famous_agents > 0:
+            out["famous_status"] = info["status"][:, : env.famous_agents].mean()
+            out["others_status"] = info["status"][:, env.famous_agents :].mean()
         return (obs, state, key), out
 
     _, curves = jax.lax.scan(step, (obs, state, keys[0]), None, env.num_inner_steps)
@@ -396,13 +400,15 @@ def finish(config, runner, metrics, out_dir):
                 )
             )
             ranks = [f"status_rank{r + 1}" for r in range(env.num_agents)]
+            groups = ["famous_status", "others_status"] if env.famous_agents > 0 else []
             with open(os.path.join(out_dir, f"eval_curve_seed{k}.csv"), "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(["step", "gini_mean", "gini_std", "isolated_mean", *ranks])
+                writer.writerow(["step", "gini_mean", "gini_std", "isolated_mean", *ranks, *groups])
                 for t in range(env.num_inner_steps):
                     writer.writerow([
                         t + 1, curves["gini_mean"][t], curves["gini_std"][t],
                         curves["isolated_mean"][t], *curves["status_by_rank"][t],
+                        *(curves[g][t] for g in groups),
                     ])
             summary[f"seed{k}"]["eval_final_gini"] = float(curves["gini_mean"][-1])
             summary[f"seed{k}"]["eval_final_isolated"] = float(curves["isolated_mean"][-1])

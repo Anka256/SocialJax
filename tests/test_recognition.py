@@ -176,6 +176,19 @@ def test_reward_formula():
     assert jnp.allclose(info["individual_rewards"], rew)
 
 
+def test_level_reward():
+    # same scene as test_reward_formula: reward is now paid on the recognition level, every step
+    env = make(num_agents=3, reward_mode="level")
+    K = onp.zeros((3, 3))
+    K[2, 0] = 0.9
+    state = place(env, [[12, 12, NORTH], [9, 12, NORTH], [20, 20, SOUTH]], K=K)
+    _, new, rew, _, _ = stay(env, state)
+    s0 = 0.9
+    assert jnp.isclose(rew[1], env.level_reward_rate * (1 + s0) * new.K[0, 1])
+    assert jnp.isclose(rew[0], env.level_reward_rate * new.K[2, 0] / (1 + s0)), "known by agent 2 keeps paying"
+    assert rew[2] == 0
+
+
 def test_shared_rewards():
     env = make(num_agents=3, shared_rewards=True)
     K = onp.zeros((3, 3))

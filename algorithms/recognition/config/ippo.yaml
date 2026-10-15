@@ -8,6 +8,7 @@ ENV_KWARGS:
   grid_size: [25, 25]
   num_inner_steps: 1000
   shared_rewards: false      # false = individual reward, true = everyone gets the group sum
+  reward_mode: change        # change = reward gains/losses in recognition; level = reward being recognised, every step
   fame_visibility: 1.5       # 0.0 = visibility does not grow with status (ablation)
   attention_budget: 0        # agents recognised per step (nearest first); 0 = no limit
   recognition_capacity: 3.0  # soft capacity C: decay x (1 + load / C); 0 = off

@@ -25,7 +25,7 @@ The status of agent j is `s_j = Σ_i K[i, j]`.
 | Decay (i does not see j) | `K ← (1 − δ_K·(1 + L_i / C))·K`, with load `L_i = Σ_j K[i, j]`: the more agents i knows, the faster each fades (soft capacity C, default 3; 0 = off) |
 | Memory | `M ← max((1 − δ_M)·M, K)` |
 | Forgetting | `M < θ_forget` resets K and M to 0 |
-| Reward of j | `Σ_i w_ij · ΔK[i, j]`, with `w_ij = (1 + s_i) / (1 + s_j)` |
+| Reward of j | `reward_mode="change"` (default): `Σ_i w_ij · ΔK[i, j]`; `reward_mode="level"`: `rate · Σ_i w_ij · K[i, j]` every step (rate 0.01). `w_ij = (1 + s_i) / (1 + s_j)` |
 
 Losing recognition (ΔK < 0) is penalised, so an agent cannot farm reward by
 drifting away and coming back. One-off penalties on bonds going dormant or being
