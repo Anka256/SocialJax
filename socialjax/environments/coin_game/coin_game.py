@@ -775,19 +775,18 @@ class CoinGame(MultiAgentEnv):
                 rewards = rewards.at[1, 0].set(green_reward[0])
                 original_rewards = rewards * self.num_agents
                 if self.smooth_rewards:
-                    should_smooth = (state.inner_t % 1) == 0
-                    new_smooth_rewards = 0.99 * 0.01* state.smooth_rewards + original_rewards
+                    new_smooth_rewards = 0.99 * 0.9 * state.smooth_rewards + original_rewards
                     rewards, disadvantageous, advantageous = self.get_inequity_aversion_rewards_immediate(new_smooth_rewards, state.inner_t, self.inequity_aversion_target_agents, self.inequity_aversion_alpha, self.inequity_aversion_beta)
                     state = state.replace(smooth_rewards=new_smooth_rewards)
                     info = {
-                    "original_rewards": rewards.squeeze(),
+                    "original_rewards": original_rewards.squeeze(),
                     "smooth_rewards": state.smooth_rewards.squeeze(),
                     "shaped_rewards": rewards.squeeze(),
                 }
                 else:
                     rewards, disadvantageous, advantageous = self.get_inequity_aversion_rewards_immediate(original_rewards, state.inner_t, self.inequity_aversion_target_agents, self.inequity_aversion_alpha, self.inequity_aversion_beta)
                     info = {
-                    "original_rewards": rewards.squeeze(),
+                    "original_rewards": original_rewards.squeeze(),
                     "shaped_rewards": rewards.squeeze(),
                 }
             elif self.svo:

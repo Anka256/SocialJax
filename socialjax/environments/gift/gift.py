@@ -943,9 +943,8 @@ class Gift(MultiAgentEnv):
                     "shaped_rewards": rewards.squeeze(),
                 }
             elif self.inequity_aversion:
-                original_rewards = rewards * self.num_agents
+                original_rewards = (rewards * self.num_agents).reshape(-1, 1)  # IA expects (N, 1)
                 if self.smooth_rewards:
-                    should_smooth = (state.inner_t % 1) == 0
                     new_smooth_rewards = 0.99 * 0.99* state.smooth_rewards + original_rewards
                     rewards, disadvantageous, advantageous = self.get_inequity_aversion_rewards_immediate(new_smooth_rewards, state.inner_t, self.inequity_aversion_target_agents, self.inequity_aversion_alpha, self.inequity_aversion_beta)
                     state = state.replace(smooth_rewards=new_smooth_rewards)

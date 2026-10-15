@@ -682,9 +682,8 @@ class CoopMining(MultiAgentEnv):
                 "shaped_rewards": final_rewards.squeeze(),
             }
         elif self.inequity_aversion:
-            final_rewards = (rewards_iron + rewards_gold) * self.num_agents # (N,)
+            final_rewards = ((rewards_iron + rewards_gold) * self.num_agents).reshape(-1, 1)  # IA expects (N, 1)
             if self.smooth_rewards:
-                should_smooth = (state.inner_t % 1) == 0
                 new_smooth_rewards = 0.99 * 0.99 * state.smooth_rewards + final_rewards
                 rewards, disadvantageous, advantageous = self.get_inequity_aversion_rewards_immediate(new_smooth_rewards, state.inner_t, self.inequity_aversion_target_agents, self.inequity_aversion_alpha, self.inequity_aversion_beta)
                 state = state.replace(smooth_rewards=new_smooth_rewards)
@@ -699,6 +698,7 @@ class CoopMining(MultiAgentEnv):
                 "original_rewards": final_rewards.squeeze(),
                 "shaped_rewards": rewards.squeeze(),
             }
+            final_rewards = rewards.squeeze()  # train on the IA-shaped reward
         elif self.svo:
             final_rewards = (rewards_iron + rewards_gold) * self.num_agents  # (N,)
             rewards, theta = self.get_svo_rewards(

@@ -42,6 +42,7 @@ class State:
     claimed_resources: jnp.ndarray
     claimed_coord: jnp.ndarray
     claimed_indicator_time_matrix: jnp.ndarray
+    smooth_rewards: jnp.ndarray
 
 @chex.dataclass
 class EnvParams:
@@ -1875,9 +1876,9 @@ class Territory_open(MultiAgentEnv):
                 }
             elif self.inequity_aversion:
                 original_rewards = jnp.sum(rewards_matrix, axis=(1, 2)) * 0.01
+                original_rewards = original_rewards.reshape(-1, 1)  # IA/SVO expect (N, 1)
                 if self.smooth_rewards:
-                    should_smooth = (state.inner_t % 1) == 0
-                    new_smooth_rewards = 0.99 * 0.01* state.smooth_rewards + original_rewards
+                    new_smooth_rewards = 0.99 * 0.9 * state.smooth_rewards + original_rewards
                     rewards, disadvantageous, advantageous = self.get_inequity_aversion_rewards_immediate(new_smooth_rewards, state.inner_t, self.inequity_aversion_target_agents, self.inequity_aversion_alpha, self.inequity_aversion_beta)
                     state = state.replace(smooth_rewards=new_smooth_rewards)
                     info = {
@@ -1893,6 +1894,7 @@ class Territory_open(MultiAgentEnv):
                 }
             elif self.svo:
                 original_rewards = jnp.sum(rewards_matrix, axis=(1, 2)) * 0.01
+                original_rewards = original_rewards.reshape(-1, 1)  # IA/SVO expect (N, 1)
                 rewards, theta = self.get_svo_rewards(original_rewards, self.svo_w, self.svo_ideal_angle_degrees, self.svo_target_agents)
                 info = {
                     "original_rewards": original_rewards.squeeze(),
@@ -1957,6 +1959,7 @@ class Territory_open(MultiAgentEnv):
                 claimed_resources = state.claimed_resources,
                 claimed_coord = state.claimed_coord,
                 claimed_indicator_time_matrix = claimed_indicator_time_matrix,
+                smooth_rewards=state.smooth_rewards,
             )
 
             # now calculate if done for inner or outer episode
@@ -2089,6 +2092,7 @@ class Territory_open(MultiAgentEnv):
                 claimed_resources = jnp.ones((88,3), dtype=jnp.int16) * 1000,
                 claimed_coord = jnp.zeros((23,39), dtype=bool),
                 claimed_indicator_time_matrix = jnp.zeros((23,39), dtype=jnp.int16),
+                smooth_rewards=jnp.zeros((self.num_agents, 1)),
             )
 
         def reset(
