@@ -67,8 +67,6 @@ def band(ax, x, ys, colour, label):
     ys = np.stack(ys)
     ax.fill_between(x, ys.min(0), ys.max(0), color=colour, alpha=0.15, linewidth=0)
     ax.plot(x, ys.mean(0), color=colour, linewidth=2, label=label, marker="o" if len(x) == 1 else None)
-    ax.annotate(label, (x[-1], ys.mean(0)[-1]), xytext=(6, 0), textcoords="offset points",
-                va="center", fontsize=9, color=INK)
 
 
 def main():
