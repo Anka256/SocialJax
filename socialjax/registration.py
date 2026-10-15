@@ -9,6 +9,7 @@ from socialjax.environments import (
     Gift,
     PD_Arena,
     LBForaging,
+    Recognition,
 )
 
 # Registry of all available environments
@@ -24,6 +25,7 @@ REGISTERED_ENVS = [
     "mushrooms",
     "gift",
     "lb_foraging",
+    "recognition",
 ]
 
 
@@ -52,4 +54,6 @@ def make(env_id: str, **env_kwargs):
         env = Gift(**env_kwargs)
     elif env_id == "lb_foraging":
         env = LBForaging(**env_kwargs)
+    elif env_id == "recognition":
+        env = Recognition(**env_kwargs)
     return env

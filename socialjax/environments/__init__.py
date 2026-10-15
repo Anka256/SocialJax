@@ -9,4 +9,5 @@ from .coop_mining import CoopMining
 from .mushrooms import Mushrooms
 from .gift import Gift
 from .lb_foraging import LBForaging
+from .recognition import Recognition
 
