@@ -88,6 +88,25 @@ def test_out_of_cone_is_not_seen():
     assert state.K[0, 1] == 0
 
 
+def test_attention_budget():
+    # agents 1 and 2 stand 2 and 4 cells in front of agent 0
+    locs = [[12, 12, NORTH], [10, 12, SOUTH], [8, 12, SOUTH]]
+    for budget, expected in [(1, [True, False]), (2, [True, True]), (0, [True, True])]:
+        env = make(num_agents=3, attention_budget=budget, base_range=5.0)
+        _, state, _, _, _ = stay(env, place(env, locs))
+        assert [bool(state.K[0, j] > 0) for j in (1, 2)] == expected, f"budget={budget}"
+
+
+def test_attention_goes_to_the_nearest_not_the_lowest_index():
+    # agent 1 at distance sqrt(17), agent 2 at distance 4: agent 2 is nearer despite its index
+    env = make(num_agents=3, attention_budget=1, base_range=5.0)
+    _, state, _, _, _ = stay(env, place(env, [[12, 12, NORTH], [8, 13, SOUTH], [8, 12, SOUTH]]))
+    assert state.K[0, 1] == 0 and state.K[0, 2] > 0
+    # exact tie (both at distance sqrt(5)): the lower index wins
+    _, state, _, _, _ = stay(env, place(env, [[12, 12, NORTH], [10, 11, SOUTH], [10, 13, SOUTH]]))
+    assert state.K[0, 1] > 0 and state.K[0, 2] == 0
+
+
 def test_memory_speeds_up_recognition():
     env = make(num_agents=2)
     locs = [[12, 12, NORTH], [9, 12, NORTH]]

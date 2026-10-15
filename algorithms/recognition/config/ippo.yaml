@@ -8,6 +8,7 @@ ENV_KWARGS:
   num_inner_steps: 1000
   shared_rewards: false      # false = individual reward, true = everyone gets the group sum
   fame_visibility: 1.5       # 0.0 = visibility does not grow with status (ablation)
+  attention_budget: 1        # agents recognised per step (nearest first); 0 = no limit
   famous_agents: 0           # >0 = unequal start: these agents begin known by everyone
 
 # PPO, parameter-shared across agents (sized for an 8 GB GPU)

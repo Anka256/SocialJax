@@ -100,6 +100,8 @@ class Recognition(MultiAgentEnv):
         base_range: float = 3.0,
         max_range: float = 8.0,
         fame_visibility: float = 1.5,
+        # an agent recognises at most this many agents per step (the nearest ones); 0 = no limit
+        attention_budget: int = 1,
         # recognition dynamics
         growth_rate: float = 0.05,
         memory_boost: float = 1.0,
@@ -119,6 +121,7 @@ class Recognition(MultiAgentEnv):
         super().__init__(num_agents=num_agents)
         assert max_range <= view_forward, "recognition range must fit in the view window"
         assert 0 <= famous_agents <= num_agents
+        assert attention_budget >= 0
         assert num_agents <= grid_size[0] * grid_size[1]
 
         self.agents = list(range(num_agents))
@@ -130,6 +133,7 @@ class Recognition(MultiAgentEnv):
         self.base_range = base_range
         self.max_range = max_range
         self.fame_visibility = fame_visibility
+        self.attention_budget = attention_budget
         self.growth_rate = growth_rate
         self.memory_boost = memory_boost
         self.recognition_decay = recognition_decay
@@ -257,11 +261,19 @@ class Recognition(MultiAgentEnv):
         return jnp.minimum(self.base_range + self.fame_visibility * jnp.log1p(s), self.max_range)
 
     def _sight(self, locs: chex.Array, visibility: chex.Array) -> Tuple[chex.Array, chex.Array]:
-        """seen[i, j]: j stands in i's 90-degree front cone within j's visibility range."""
+        """seen[i, j]: j stands in i's 90-degree front cone within j's visibility range,
+        and is among the attention_budget nearest such agents (ties go to the lower index)."""
         forward, lateral = self._relative(locs)
         dist = jnp.sqrt((forward ** 2 + lateral ** 2).astype(jnp.float32))
         in_cone = (forward >= 1) & (jnp.abs(lateral) <= forward)
         seen = in_cone & (dist <= visibility[None, :])
+        if self.attention_budget > 0:
+            n = self.num_agents
+            # exact order: integer squared distance first, agent index breaks ties
+            dist_sq = forward ** 2 + lateral ** 2
+            score = jnp.where(seen, dist_sq * n + jnp.arange(n)[None, :], jnp.iinfo(jnp.int32).max)
+            rank = jnp.argsort(jnp.argsort(score, axis=1), axis=1)
+            seen = seen & (rank < self.attention_budget)
         return seen, dist
 
     def _update_recognition(self, K, M, seen, dist, visibility):

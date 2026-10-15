@@ -20,7 +20,7 @@ The status of agent j is `s_j = Σ_i K[i, j]`.
 | Rule | Formula |
 | --- | --- |
 | Visibility range of j | `R_j = min(R0 + c·ln(1 + s_j), R_max)` |
-| i sees j | j is in i's 90° front cone and `d_ij ≤ R_j` |
+| i sees j | j is in i's 90° front cone, `d_ij ≤ R_j`, and among the `attention_budget` (default 1) nearest such agents |
 | Growth (i sees j) | `K += η · g(d) · (1 + κ·M) · (1 − K)`, with `g(d) = 1 − d / (R_j + 1)` |
 | Decay (i does not see j) | `K ← (1 − δ_K)·K` |
 | Memory | `M ← max((1 − δ_M)·M, K)` |
