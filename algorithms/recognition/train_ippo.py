@@ -346,7 +346,11 @@ def run(config, out_dir):
     while start < num_updates:
         length = min(config["CHECKPOINT_EVERY"], num_updates - start)
         if length not in chunks:
-            chunks[length] = jax.jit(jax.vmap(lambda r, s, L=length: run_chunk(r, s, L), in_axes=(0, None)))
+            # seeds run one after another (lax.map, not vmap): the GPU is already saturated
+            # by one seed's envs, and this keeps memory to one seed's worth on an 8 GB card
+            chunks[length] = jax.jit(
+                lambda r, s, L=length: jax.lax.map(lambda seed_runner: run_chunk(seed_runner, s, L), r)
+            )
         runner, chunk_metrics = chunks[length](runner, start)
         chunk_metrics = jax.device_get(chunk_metrics)  # (seeds, length) per metric
         metrics = {

@@ -31,7 +31,7 @@ ACTIVATION: relu
 
 PARAMETER_SHARING: true      # false = one network per agent
 SEED: 0
-NUM_SEEDS: 1                 # seeds trained in parallel with vmap
+NUM_SEEDS: 1                 # independent seeds, trained one after another in each chunk
 
 CHECKPOINT_EVERY: 50         # updates per chunk; the full state is saved after each chunk
 RESUME: false                # true = continue the run in hydra.run.dir from its checkpoint
