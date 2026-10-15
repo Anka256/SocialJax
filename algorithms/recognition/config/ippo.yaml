@@ -1,0 +1,35 @@
+# IPPO on the Recognition env. Override anything on the command line, e.g.
+#   python algorithms/recognition/train_ippo.py ENV_KWARGS.shared_rewards=true SEED=1
+#   python algorithms/recognition/train_ippo.py -m ENV_KWARGS.fame_visibility=0.0,1.5
+
+ENV_KWARGS:
+  num_agents: 10
+  grid_size: [25, 25]
+  num_inner_steps: 1000
+  shared_rewards: false      # false = individual reward, true = everyone gets the group sum
+  fame_visibility: 1.5       # 0.0 = visibility does not grow with status (ablation)
+  famous_agents: 0           # >0 = unequal start: these agents begin known by everyone
+
+# PPO, parameter-shared across agents (sized for an 8 GB GPU)
+TOTAL_TIMESTEPS: 2e7         # environment steps, summed over parallel envs
+NUM_ENVS: 64
+NUM_STEPS: 128               # rollout length per update
+UPDATE_EPOCHS: 4
+NUM_MINIBATCHES: 4
+LR: 3e-4
+ANNEAL_LR: true
+GAMMA: 0.99
+GAE_LAMBDA: 0.95
+CLIP_EPS: 0.2
+ENT_COEF: 0.01
+VF_COEF: 0.5
+MAX_GRAD_NORM: 0.5
+ACTIVATION: relu
+
+SEED: 0
+NUM_SEEDS: 1                 # seeds trained in parallel with vmap
+
+GIF_FRAMES: 300              # length of the evaluation GIF; 0 to skip
+WANDB_MODE: disabled         # online | offline | disabled
+WANDB_PROJECT: recognition
+WANDB_ENTITY: null
