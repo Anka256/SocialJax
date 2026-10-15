@@ -1,6 +1,7 @@
 # IPPO on the Recognition env. Override anything on the command line, e.g.
 #   python algorithms/recognition/train_ippo.py ENV_KWARGS.shared_rewards=true SEED=1
 #   python algorithms/recognition/train_ippo.py -m ENV_KWARGS.fame_visibility=0.0,1.5
+#   python algorithms/recognition/train_ippo.py hydra.run.dir=<run dir> RESUME=true
 
 ENV_KWARGS:
   num_agents: 10
@@ -12,7 +13,7 @@ ENV_KWARGS:
   recognition_capacity: 3.0  # soft capacity C: decay x (1 + load / C); 0 = off
   famous_agents: 0           # >0 = unequal start: these agents begin known by everyone
 
-# PPO, parameter-shared across agents (sized for an 8 GB GPU)
+# PPO (sized for an 8 GB GPU)
 TOTAL_TIMESTEPS: 2e7         # environment steps, summed over parallel envs
 NUM_ENVS: 64
 NUM_STEPS: 128               # rollout length per update
@@ -28,10 +29,12 @@ VF_COEF: 0.5
 MAX_GRAD_NORM: 0.5
 ACTIVATION: relu
 
+PARAMETER_SHARING: true      # false = one network per agent
 SEED: 0
 NUM_SEEDS: 1                 # seeds trained in parallel with vmap
 
+CHECKPOINT_EVERY: 50         # updates per chunk; the full state is saved after each chunk
+RESUME: false                # true = continue the run in hydra.run.dir from its checkpoint
+
+EVAL_EPISODES: 16            # episodes for the inequality-over-time curves; 0 to skip
 GIF_FRAMES: 300              # length of the evaluation GIF; 0 to skip
-WANDB_MODE: disabled         # online | offline | disabled
-WANDB_PROJECT: recognition
-WANDB_ENTITY: null
