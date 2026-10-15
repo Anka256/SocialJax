@@ -5,6 +5,7 @@
     python algorithms/recognition/train_ippo.py ENV_KWARGS.shared_rewards=true
     python algorithms/recognition/train_ippo.py PARAMETER_SHARING=false NUM_SEEDS=3
     python algorithms/recognition/train_ippo.py hydra.run.dir=<run dir> RESUME=true   # continue
+    python algorithms/recognition/train_ippo.py hydra.run.dir=<run dir> RESUME=true EXTEND_TO_TIMESTEPS=6e6
 
 Training runs in chunks of CHECKPOINT_EVERY updates; after each chunk the whole
 training state (networks, optimiser, envs, RNG, metrics so far) is written to
@@ -325,8 +326,9 @@ def run(config, out_dir):
     if config["RESUME"]:
         with open(config_path) as f:
             saved = json.load(f)
-        # the saved configuration wins; only the training length may be extended
-        saved["TOTAL_TIMESTEPS"] = config["TOTAL_TIMESTEPS"]
+        # the saved configuration wins; the training length changes only when asked explicitly
+        if config["EXTEND_TO_TIMESTEPS"] is not None:
+            saved["TOTAL_TIMESTEPS"] = config["EXTEND_TO_TIMESTEPS"]
         config = {**saved, "RESUME": True}
     else:
         with open(config_path, "w") as f:

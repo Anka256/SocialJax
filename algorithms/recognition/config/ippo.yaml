@@ -36,6 +36,7 @@ NUM_SEEDS: 1                 # independent seeds, trained one after another in e
 
 CHECKPOINT_EVERY: 50         # updates per chunk; the full state is saved after each chunk
 RESUME: false                # true = continue the run in hydra.run.dir from its checkpoint
+EXTEND_TO_TIMESTEPS: null    # with RESUME: train the run further, to this many steps in total
 
 EVAL_EPISODES: 16            # episodes for the inequality-over-time curves; 0 to skip
 GIF_FRAMES: 300              # length of the evaluation GIF; 0 to skip
