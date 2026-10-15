@@ -121,9 +121,28 @@ def test_decay_and_memory():
     K = [[0, 0.5], [0, 0]]
     state = place(env, [[5, 5, NORTH], [20, 20, SOUTH]], K=K)
     _, state, _, _, info = stay(env, state)
-    assert jnp.isclose(state.K[0, 1], 0.5 * (1 - env.recognition_decay))
+    decay = env.recognition_decay * (1 + 0.5 / env.recognition_capacity)  # load of agent 0 is 0.5
+    assert jnp.isclose(state.K[0, 1], 0.5 * (1 - decay))
     assert jnp.isclose(state.M[0, 1], 0.5 * (1 - env.memory_decay))
     assert info["sleep_events"].sum() == 0
+
+
+def test_knowing_more_agents_makes_each_fade_faster():
+    # agent 0 knows agent 1 alone, or agents 1..3; nobody sees anybody
+    locs = [[2, 2, NORTH], [22, 2, SOUTH], [2, 22, NORTH], [22, 22, SOUTH]]
+    alone = onp.zeros((4, 4))
+    alone[0, 1] = 0.6
+    crowd = alone.copy()
+    crowd[0, 2] = crowd[0, 3] = 0.6
+    env = make(num_agents=4, recognition_capacity=3.0)
+    k_alone = stay(env, place(env, locs, K=alone))[1].K[0, 1]
+    after = stay(env, place(env, locs, K=crowd))[1]
+    assert after.K[0, 1] < k_alone
+    assert jnp.isclose(after.K[0, 1], 0.6 * (1 - env.recognition_decay * (1 + 1.8 / 3.0)))
+    assert jnp.isclose(after.M[0, 1], 0.6 * (1 - env.memory_decay)), "memory is not affected by load"
+    # capacity off: plain decay
+    env = make(num_agents=4, recognition_capacity=0.0)
+    assert jnp.isclose(stay(env, place(env, locs, K=crowd))[1].K[0, 1], 0.6 * (1 - env.recognition_decay))
 
 
 def test_sleep_and_forget_events():

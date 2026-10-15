@@ -12,7 +12,9 @@ and the status of agent j is s_j = sum_i K[i, j].
 
 Per step, for every pair where i sees j:
   dK = eta * g(d_ij) * (1 + kappa * M[i, j]) * (1 - K[i, j])
-otherwise K decays: K <- (1 - delta_K) * K. Memory follows
+otherwise K decays: K <- (1 - delta_K * (1 + L_i / C)) * K, where the load
+L_i = sum_j K[i, j] is how much i currently recognises in total, so the more
+agents i knows, the faster each of them fades (a soft capacity, C). Memory follows
 M <- max((1 - delta_M) * M, K). A bond whose memory drops below
 forget_threshold is forgotten: K and M reset to 0.
 
@@ -101,11 +103,13 @@ class Recognition(MultiAgentEnv):
         max_range: float = 8.0,
         fame_visibility: float = 1.5,
         # an agent recognises at most this many agents per step (the nearest ones); 0 = no limit
-        attention_budget: int = 1,
+        attention_budget: int = 0,
         # recognition dynamics
         growth_rate: float = 0.05,
         memory_boost: float = 1.0,
         recognition_decay: float = 0.01,
+        # soft capacity C: decay grows with the load as delta_K * (1 + load / C); 0 = off
+        recognition_capacity: float = 3.0,
         memory_decay: float = 0.001,
         sleep_threshold: float = 0.2,
         forget_threshold: float = 0.05,
@@ -137,6 +141,7 @@ class Recognition(MultiAgentEnv):
         self.growth_rate = growth_rate
         self.memory_boost = memory_boost
         self.recognition_decay = recognition_decay
+        self.recognition_capacity = recognition_capacity
         self.memory_decay = memory_decay
         self.sleep_threshold = sleep_threshold
         self.forget_threshold = forget_threshold
@@ -279,7 +284,11 @@ class Recognition(MultiAgentEnv):
     def _update_recognition(self, K, M, seen, dist, visibility):
         closeness = jnp.clip(1.0 - dist / (visibility[None, :] + 1.0), 0.0, 1.0)  # g(d)
         gain = self.growth_rate * closeness * (1.0 + self.memory_boost * M) * (1.0 - K)
-        K_new = jnp.where(seen, K + gain, (1.0 - self.recognition_decay) * K)
+        decay = self.recognition_decay
+        if self.recognition_capacity > 0:
+            load = K.sum(axis=1, keepdims=True)  # (N, 1): how much each observer recognises
+            decay = decay * (1.0 + load / self.recognition_capacity)
+        K_new = jnp.where(seen, K + gain, jnp.clip(1.0 - decay, 0.0, 1.0) * K)
         M_new = jnp.maximum((1.0 - self.memory_decay) * M, K_new)
 
         slept = (K >= self.sleep_threshold) & (K_new < self.sleep_threshold)

@@ -20,9 +20,9 @@ The status of agent j is `s_j = Σ_i K[i, j]`.
 | Rule | Formula |
 | --- | --- |
 | Visibility range of j | `R_j = min(R0 + c·ln(1 + s_j), R_max)` |
-| i sees j | j is in i's 90° front cone, `d_ij ≤ R_j`, and among the `attention_budget` (default 1) nearest such agents |
+| i sees j | j is in i's 90° front cone, `d_ij ≤ R_j`, and, if `attention_budget` > 0, among that many nearest such agents (default 0 = no limit) |
 | Growth (i sees j) | `K += η · g(d) · (1 + κ·M) · (1 − K)`, with `g(d) = 1 − d / (R_j + 1)` |
-| Decay (i does not see j) | `K ← (1 − δ_K)·K` |
+| Decay (i does not see j) | `K ← (1 − δ_K·(1 + L_i / C))·K`, with load `L_i = Σ_j K[i, j]`: the more agents i knows, the faster each fades (soft capacity C, default 3; 0 = off) |
 | Memory | `M ← max((1 − δ_M)·M, K)` |
 | Forgetting | `M < θ_forget` resets K and M to 0 |
 | Reward of j | `Σ_i w_ij · ΔK[i, j]`, with `w_ij = (1 + s_i) / (1 + s_j)` |
